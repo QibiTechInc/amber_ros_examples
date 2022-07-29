@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import rospy
+from amber_moveit_examples.motion_example_node import MotionExampleNode
+
+try:
+    me_node = MotionExampleNode()
+    me_node.run()
+except rospy.ROSInterruptException:
+    pass

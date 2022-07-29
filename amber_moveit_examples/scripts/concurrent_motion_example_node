@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import rospy
+from amber_moveit_examples.concurrent_motion_example_node import ConcurrentMotionExampleNode
+
+try:
+    cme_node = ConcurrentMotionExampleNode()
+    cme_node.run()
+except rospy.ROSInterruptException:
+    pass

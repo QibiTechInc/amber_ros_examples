@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import rospy
+from amber_moveit_examples.gripper_example_node import GripperExampleNode
+
+try:
+    ge_node = GripperExampleNode()
+    ge_node.run()
+except rospy.ROSInterruptException:
+    pass

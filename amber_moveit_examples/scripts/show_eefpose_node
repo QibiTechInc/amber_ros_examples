@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import rospy
+from amber_moveit_examples.show_eefpose_node import ShowEefposeNode
+
+try:
+    se_node = ShowEefposeNode()
+    se_node.run()
+except rospy.ROSInterruptException:
+    pass
