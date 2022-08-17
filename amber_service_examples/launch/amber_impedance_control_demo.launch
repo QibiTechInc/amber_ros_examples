@@ -1,0 +1,27 @@
+<launch>
+
+  <node name="right_impedance_controller"
+        pkg="amber_service_examples"
+        type="amber_impedance_control"
+        output="screen">
+    <param name="amber_lr" value="amber_right"/>
+    <param name="pgain" value="-2"/>
+    <param name="dgain" value="-3"/>
+  </node>
+
+  <!-- <node name="left_impedance_controller" -->
+  <!--       pkg="amber_service_examples" -->
+  <!--       type="amber_impedance_control" -->
+  <!--       output="screen"> -->
+  <!--   <param name="amber_lr" value="amber_left"/> -->
+  <!--   <param name="pgain" value="-3"/> -->
+  <!--   <param name="dgain" value="-3"/> -->
+  <!-- </node> -->
+
+  <node name="wait_enter_key_node"
+        pkg="amber_service_examples"
+        type="amber_impedance_control_demo"
+        output="log">
+  </node>
+
+</launch>

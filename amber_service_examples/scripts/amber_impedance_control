@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import rospy
+from amber_service_examples.amber_impedance_control import AmberImpedanceControl
+
+
+try:
+    rospy.init_node('impedance_node')
+    node = AmberImpedanceControl()
+    node.run()
+    # node.close_hand_test()
+except rospy.ROSInterruptException:
+    pass

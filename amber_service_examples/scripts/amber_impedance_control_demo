@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import rospy
+from amber_service_examples.amber_impedance_control \
+    import AmberImpedanceControlDemoScenario as waitkey
+
+
+try:
+    rospy.init_node('wait_key_node')
+    node = waitkey()
+    node.run()
+except rospy.ROSInterruptException:
+    pass
