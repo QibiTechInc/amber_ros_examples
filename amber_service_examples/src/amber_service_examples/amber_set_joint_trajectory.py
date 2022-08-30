@@ -3,6 +3,7 @@
 
 import rospy
 import time
+import sys
 from std_srvs.srv import Empty
 from amber_ros_driver.srv import (
     SetInt8Array,
@@ -11,7 +12,11 @@ from amber_ros_driver.srv import (
 
 
 def wait_key_enter():
-    input('')
+    python_ver = sys.version_info.major
+    if python_ver == 2:
+        raw_input('')
+    else:
+        input('')
 
 
 class SetJointTrajectoryExampleNode(object):

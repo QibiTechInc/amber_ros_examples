@@ -26,6 +26,7 @@ class AmberImpedanceControl(object):
     _SRV_SERVOALLOFF = '/servo_all_off'
     _SRV_SERVOOFF = '/servo_off'
     _SRV_RESETPOSITION = '/go_to_rest_position'
+    _SRV_GRASP = '/grasp'
 
     def __init__(self):
 
@@ -46,19 +47,21 @@ class AmberImpedanceControl(object):
         self._SUBSCRIBERS = []
 
         # register services
-        service_list = [self._SRV_SETCONTROLMODE,
-                        self._SRV_SERVOALLON,
-                        self._SRV_SERVOON,
-                        self._SRV_SETJOINTTRAJECTORY,
-                        self._SRV_WAITINTERPOLATION,
-                        self._SRV_SERVOALLOFF,
-                        self._SRV_SERVOOFF,
-                        self._SRV_RESETPOSITION]
-        srv_dict = {}
+        service_list = [[self._SRV_SETCONTROLMODE,'SetInt8Array'],
+                        [self._SRV_SERVOALLON,'Empty'],
+                        [self._SRV_SERVOON,'SetJointNo'],
+                        [self._SRV_SETJOINTTRAJECTORY,'SetJointTrajectory'],
+                        [self._SRV_WAITINTERPOLATION,'Empty'],
+                        [self._SRV_SERVOALLOFF,'Empty'],
+                        [self._SRV_SERVOOFF,'SetJointNo'],
+                        [self._SRV_RESETPOSITION,'Empty'],
+                        [self._SRV_GRASP, 'Empty']]
+        self._SRV_DICT = {}
         for sv in service_list:
-            srv_dict = self._register_service(self, sv, srv_dict)
-        self._SERVICE_DICT[self._LR] = srv_dict
+            self._register_service(*sv)
+        self._SERVICE_DICT[self._LR] = self._SRV_DICT
 
+        # register subscribers
         self._SUBSCRIBERS.append(
             rospy.Subscriber(self._LR+'/joint_currents',
                              Float64MultiArray,
@@ -81,14 +84,13 @@ class AmberImpedanceControl(object):
         )
 
 
-    def _register_service(self, name, srv_dict):
+    def _register_service(self, name, srv_type):
         srv_name = self._LR + name
         rospy.wait_for_service(srv_name)
-        srv_dict[name] = rospy.ServiceProxy(
+        self._SRV_DICT[name] = rospy.ServiceProxy(
             srv_name,
-            Empty
+            eval(srv_type)
         )
-        return srv_dict
 
 
     def _joint_currents_cb(self, data, lr):
@@ -123,46 +125,6 @@ class AmberImpedanceControl(object):
                 r.sleep()
             ret_data[lr] = [i/count for i in sum_list]
         return ret_data
-
-
-    def _close_hand_until_contact(self,
-                                  lr,
-                                  close_angle=0.5,
-                                  close_time=3.0,
-                                  close_offset=0.3,
-                                  contact_current=0.5):
-        start_currents = self._get_current_average(1.0)
-        self._SERVICE_DICT[lr][self._SRV_SETJOINTTRAJECTORY](
-            [0, 0, 0, 0, 0, close_angle, close_angle],
-            close_time,
-            [1, 1, 1, 1, 1, 0, 0],
-            self._INTP_MINJERK,
-            False
-        )
-        diff_c = [i-j for i, j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
-        while (abs(diff_c[5]) < contact_current \
-               or abs(diff_c[6]) < contact_current) \
-               and not rospy.is_shutdown():
-            diff_c = [i-j for i, j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
-            time.sleep(0.01)
-        self._SERVICE_DICT[lr][self._SRV_SETJOINTTRAJECTORY](
-            [0, 0, 0, 0, 0, 0, 0],
-            0.01,
-            [1, 1, 1, 1, 1, 0, 0],
-            self._INTP_MINJERK,
-            True
-        )
-        self._SERVICE_DICT[lr][self._SRV_WAITINTERPOLATION]()
-        time.sleep(1)
-        rospy.loginfo('-- grasp offset')
-        self._SERVICE_DICT[lr][self._SRV_SETJOINTTRAJECTORY](
-            [0, 0, 0, 0, 0, close_offset, close_offset],
-            1.0,
-            [1, 1, 1, 1, 1, 0, 0],
-            self._INTP_MINJERK,
-            True
-        )
-        self._SERVICE_DICT[lr][self._SRV_WAITINTERPOLATION]()
 
 
     def _impedance_control(self, event):
@@ -220,7 +182,7 @@ class AmberImpedanceControl(object):
 
         # grasp plate
         rospy.loginfo("- graspping...")
-        self._close_hand_until_contact(self._LR)
+        self._SERVICE_DICT[self._LR][self._SRV_GRASP]()
         rospy.loginfo("grasp")
 
         # get now sensor data
