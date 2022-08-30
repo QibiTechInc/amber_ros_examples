@@ -3,6 +3,7 @@
 
 import rospy
 import time
+import sys
 
 from std_msgs.msg import Empty as msgEmtpy
 from std_msgs.msg import Float64MultiArray
@@ -43,72 +44,19 @@ class AmberImpedanceControl(object):
         self._START_CURRENTS = {}
         self._START_POSITIONS = {}
         self._SUBSCRIBERS = []
+
+        # register services
+        service_list = [self._SRV_SETCONTROLMODE,
+                        self._SRV_SERVOALLON,
+                        self._SRV_SERVOON,
+                        self._SRV_SETJOINTTRAJECTORY,
+                        self._SRV_WAITINTERPOLATION,
+                        self._SRV_SERVOALLOFF,
+                        self._SRV_SERVOOFF,
+                        self._SRV_RESETPOSITION]
         srv_dict = {}
-
-        # set control mode
-        srv_name = self._LR+self._SRV_SETCONTROLMODE
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SETCONTROLMODE] = rospy.ServiceProxy(
-            srv_name,
-            SetInt8Array
-        )
-
-        # servo all on
-        srv_name = self._LR+self._SRV_SERVOALLON
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SERVOALLON] = rospy.ServiceProxy(
-            srv_name,
-            Empty
-        )
-
-        # servo on
-        srv_name = self._LR+self._SRV_SERVOON
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SERVOON] = rospy.ServiceProxy(
-            srv_name,
-            SetJointNo
-        )
-
-        # set joint trajectory
-        srv_name = self._LR+self._SRV_SETJOINTTRAJECTORY
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SETJOINTTRAJECTORY] = rospy.ServiceProxy(
-            srv_name,
-            SetJointTrajectory
-        )
-
-        # wait interpolation
-        srv_name = self._LR+self._SRV_WAITINTERPOLATION
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_WAITINTERPOLATION] = rospy.ServiceProxy(
-            srv_name,
-            Empty
-        )
-
-        # servo all off
-        srv_name = self._LR+self._SRV_SERVOALLOFF
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SERVOALLOFF] = rospy.ServiceProxy(
-            srv_name,
-            Empty
-        )
-
-        # servo off
-        srv_name = self._LR+self._SRV_SERVOOFF
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_SERVOOFF] = rospy.ServiceProxy(
-            srv_name,
-            SetJointNo
-        )
-
-        # go to rest position
-        srv_name = self._LR+self._SRV_RESETPOSITION
-        rospy.wait_for_service(srv_name)
-        srv_dict[self._SRV_RESETPOSITION] = rospy.ServiceProxy(
-            srv_name,
-            Empty
-        )
-
+        for sv in service_list:
+            srv_dict = self._register_service(self, sv, srv_dict)
         self._SERVICE_DICT[self._LR] = srv_dict
 
         self._SUBSCRIBERS.append(
@@ -131,6 +79,16 @@ class AmberImpedanceControl(object):
                              self._scenario_key_cb,
                              queue_size=1)
         )
+
+
+    def _register_service(self, name, srv_dict):
+        srv_name = self._LR + name
+        rospy.wait_for_service(srv_name)
+        srv_dict[name] = rospy.ServiceProxy(
+            srv_name,
+            Empty
+        )
+        return srv_dict
 
 
     def _joint_currents_cb(self, data, lr):
@@ -160,8 +118,8 @@ class AmberImpedanceControl(object):
             r = rospy.Rate(50)
             start = rospy.Time.now()
             while rospy.Time.now()-start < rospy.Duration(duration):
-                sum_list = [i+j for i,j in zip(sum_list, currents_data)]
-                count+=1
+                sum_list = [i+j for i, j in zip(sum_list, currents_data)]
+                count += 1
                 r.sleep()
             ret_data[lr] = [i/count for i in sum_list]
         return ret_data
@@ -181,11 +139,11 @@ class AmberImpedanceControl(object):
             self._INTP_MINJERK,
             False
         )
-        diff_c = [i-j for i,j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
+        diff_c = [i-j for i, j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
         while (abs(diff_c[5]) < contact_current \
                or abs(diff_c[6]) < contact_current) \
                and not rospy.is_shutdown():
-            diff_c = [i-j for i,j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
+            diff_c = [i-j for i, j in zip(self._CURRENTS_DATA[lr], start_currents[lr])]
             time.sleep(0.01)
         self._SERVICE_DICT[lr][self._SRV_SETJOINTTRAJECTORY](
             [0, 0, 0, 0, 0, 0, 0],
@@ -209,9 +167,9 @@ class AmberImpedanceControl(object):
 
     def _impedance_control(self, event):
         if self._IMPD_ACTIVE:
-            pos_diff = [i-j for i,j in zip(self._POSITIONS_DATA[self._LR],
-                                           self._START_POSITIONS[self._LR])]
-            pos_dd = [i-j for i,j in zip(pos_diff, self._PRE_POS_DIFF[self._LR])]
+            pos_diff = [i-j for i, j in zip(self._POSITIONS_DATA[self._LR],
+                                            self._START_POSITIONS[self._LR])]
+            pos_dd = [i-j for i, j in zip(pos_diff, self._PRE_POS_DIFF[self._LR])]
             target_currents = [0]*len(self._START_CURRENTS[self._LR])
             for i in range(3):
                 target_currents[i] = self._START_CURRENTS[self._LR][i] \
@@ -229,7 +187,7 @@ class AmberImpedanceControl(object):
 
     def run(self):
         # set control mode to position
-        rospy.loginfo("- control mode: POSITION mode")
+        rospy.loginfo("- all control mode: POSITION mode")
         self._SERVICE_DICT[self._LR][self._SRV_SETCONTROLMODE]([1, 1, 1, 1, 1, 1, 1])
         time.sleep(1)
         rospy.loginfo("ok")
@@ -241,7 +199,7 @@ class AmberImpedanceControl(object):
         rospy.loginfo("ok")
 
         # set joint trajectory by position mode
-        rospy.loginfo("- joint trajectory")
+        rospy.loginfo("- set joint trajectory to start pose")
         self._SERVICE_DICT[self._LR][self._SRV_SETJOINTTRAJECTORY](
             [0.0, -0.055, -1.57, 0.0, 1.57, -0.5, -0.5],
             3.0,
@@ -255,12 +213,12 @@ class AmberImpedanceControl(object):
         self._SERVICE_DICT[self._LR][self._SRV_WAITINTERPOLATION]()
         rospy.loginfo("ok")
 
-        # set plate
+        # wait for plate to be set
         rospy.loginfo('***')
         rospy.loginfo('After setting plate on hand, please press the "Enter" key')
         self._wait_key_enter()
 
-        # set joint trajectory by position mode
+        # grasp plate
         rospy.loginfo("- graspping...")
         self._close_hand_until_contact(self._LR)
         rospy.loginfo("grasp")
@@ -271,12 +229,12 @@ class AmberImpedanceControl(object):
         self._START_CURRENTS = self._get_current_average(2)
         self._START_POSITIONS = self._POSITIONS_DATA.copy()
         self._PRE_POS_DIFF = self._START_POSITIONS.copy()
-        for k,v in self._PRE_POS_DIFF.items():
+        for k, v in self._PRE_POS_DIFF.items():
             self._PRE_POS_DIFF[k] = [0]*len(v)
         rospy.loginfo("ok")
 
-        # change control mode to current, then set joint trajectory
-        rospy.loginfo("- change control mode to CURRENT mode from joint 0 to 2")
+        # change upper arm control mode to current
+        rospy.loginfo("- upper arm control mode: CURRENT mode")
         self._SERVICE_DICT[self._LR][self._SRV_SETCONTROLMODE]([3, 3, 3, 1, 1, 1, 1])
         self._SERVICE_DICT[self._LR][self._SRV_SETJOINTTRAJECTORY](
             self._START_CURRENTS[self._LR],
@@ -303,8 +261,8 @@ class AmberImpedanceControl(object):
             it.shutdown()
         rospy.loginfo("- timer end")
 
-        # change control mode to position, then set joint trajectory
-        rospy.loginfo("- change control mode to POSITION mode from joint 0 to 2")
+        # change upper arm control mode to position
+        rospy.loginfo("- control mode: POSITION mode")
         self._SERVICE_DICT[self._LR][self._SRV_SETCONTROLMODE]([1, 1, 1, 1, 1, 1, 1])
         time.sleep(1)
         rospy.loginfo("ok")
@@ -314,7 +272,7 @@ class AmberImpedanceControl(object):
         self._SERVICE_DICT[self._LR][self._SRV_SETJOINTTRAJECTORY](
             [0, 0, 0, 0, 0, -0.5, -0.5],
             3.0,
-            [1,1,1,1,1,0,0],
+            [1, 1, 1, 1, 1, 0, 0],
             self._INTP_MINJERK,
             False
         )
@@ -340,8 +298,14 @@ class AmberImpedanceControlDemoScenario(object):
     def __init__(self):
         self._pub = rospy.Publisher('scenario_key', msgEmtpy, queue_size=1)
 
+
     def _wait_key_enter(self):
-        input('')
+        python_ver = sys.version_info.major
+        if python_ver == 2:
+            raw_input('')
+        else:
+            input('')
+
 
     def run(self):
         try:
