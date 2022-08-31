@@ -70,7 +70,7 @@ class MotionExampleNode(object):
         move_group.stop()
 
     def goto_init_pose(self):
-        init_pose = [0.0, -0.057, -2.4, 0.0, 0.0]
+        init_pose = [0.0, -0.057, -2.35, 0.0, 0.0]
         self.move_arm_by_joint_angle('r', init_pose)
         self.move_arm_by_joint_angle('l', init_pose)
 
@@ -85,29 +85,30 @@ class MotionExampleNode(object):
 
         self.move_arm_by_joint_angle('r',
                                      target_joints_r,
-                                     velocity_scale=0.2,
+                                     velocity_scale=0.1,
                                      wait=True)
         self.move_arm_by_joint_angle('l',
                                      target_joints_l,
-                                     velocity_scale=0.2,
+                                     velocity_scale=0.1,
                                      wait=True)
 
         rospy.loginfo('Move arms by eef poses')
         target_pose_r = self._move_group_right.get_current_pose().pose
-        target_pose_r.position.x = 0.2792974995496962
-        target_pose_r.position.y = -0.2651829016841067
-        target_pose_r.position.z = 0.5305198023694585
+        target_pose_r.position.x = 0.2571589194651918
+        target_pose_r.position.y = -0.25342840253637927
+        target_pose_r.position.z = 0.3543721703683328
         target_pose_l = self._move_group_left.get_current_pose().pose
-        target_pose_l.position.x = 0.1774024403073674
-        target_pose_l.position.y = 0.1661532906837873
-        target_pose_l.position.z = 0.5315360912459752
+        target_pose_l.position.x = 0.19242117784777
+        target_pose_l.position.y = 0.2797439261551028
+        target_pose_l.position.z = 0.47574641133309103
+
         self.move_arm_by_pose('r',
                               target_pose_r,
-                              velocity_scale=0.2,
+                              velocity_scale=0.1,
                               wait=True)
         self.plan_and_execute_motion_by_pose('l',
                                              target_pose_l,
-                                             velocity_scale=0.2)
+                                             velocity_scale=0.1)
 
         rospy.loginfo('Return to initial pose')
         self.goto_init_pose()
