@@ -37,6 +37,15 @@ class ConcurrentMotionExampleNode(object):
         except rospy.ServiceException as e:
             rospy.logerr("Service call failed: %s" % e)
 
+    def go_to_rest_position_srv_client(self, namespace):
+        srv_name = namespace + '/go_to_rest_position'
+        rospy.wait_for_service(srv_name)
+        try:
+            go_to_rest_position = rospy.ServiceProxy(srv_name, Empty)
+            go_to_rest_position()
+        except rospy.ServiceException as e:
+            rospy.logerr("Service call failed: %s" % e)
+
     def wait_interpolation_srv_client(self, namespace):
         srv_name = namespace + '/wait_interpolation'
         rospy.wait_for_service(srv_name)
@@ -128,6 +137,10 @@ class ConcurrentMotionExampleNode(object):
         self.wait_interpolation('r')
         self.wait_interpolation('l')
 
+    def goto_rest_pose(self, lr):
+        namespace = self._get_namespace(lr)
+        self.go_to_rest_position_srv_client(namespace)
+
     def run(self):
         rospy.loginfo('Start example')
         rospy.loginfo('Go to initial pose')
@@ -149,13 +162,13 @@ class ConcurrentMotionExampleNode(object):
         rospy.loginfo('Move arms by eef poses')
         # body座標系でhand座標系の姿勢を指示
         target_pose_r = Pose()
-        target_pose_r.position.x = 0.2792974995496962
-        target_pose_r.position.y = -0.2651829016841067
-        target_pose_r.position.z = 0.5305198023694585
+        target_pose_r.position.x = 0.2571589194651918
+        target_pose_r.position.y = -0.25342840253637927
+        target_pose_r.position.z = 0.3543721703683328
         target_pose_l = Pose()
-        target_pose_l.position.x = 0.2074024403073674
-        target_pose_l.position.y = 0.1661532906837873
-        target_pose_l.position.z = 0.5315360912459752
+        target_pose_l.position.x = 0.19242117784777
+        target_pose_l.position.y = 0.2797439261551028
+        target_pose_l.position.z = 0.47574641133309103
         target_joints_r = self.calc_ik_from_pose('r', target_pose_r)
         target_joints_l = self.calc_ik_from_pose('l', target_pose_l)
         if target_joints_r is not None:
@@ -168,9 +181,6 @@ class ConcurrentMotionExampleNode(object):
                                          3.0)
         self.wait_interpolation('r')
         self.wait_interpolation('l')
-
-        rospy.loginfo('Return to initial pose')
-        self.goto_init_pose()
 
         rospy.loginfo('Finish example')
         rospy.spin()
